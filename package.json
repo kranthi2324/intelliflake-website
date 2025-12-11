@@ -1,0 +1,24 @@
+{
+  "name": "roomwise-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "autoprefixer": "^10.4.22",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "framer-motion": "^12.23.26",
+    "node-fetch": "^3.3.2",
+    "postcss": "^8.5.6",
+    "request-promise": "^4.2.6",
+    "tailwindcss": "^4.1.17"
+  }
+}
