@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+node_modules
+>>>>>>> 504e29c (Flatten Next.js app to repo root)
+>>>>>>> 6c1b262 (Flatten Intelliflake app into single repo)
