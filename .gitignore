@@ -46,3 +46,5 @@ next-env.d.ts
 node_modules
 >>>>>>> 504e29c (Flatten Next.js app to repo root)
 >>>>>>> 6c1b262 (Flatten Intelliflake app into single repo)
+.env
+node_modules
