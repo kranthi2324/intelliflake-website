@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const replyText = await callLLM({
       messages: body.messages,
       userId: body.userId,
-      meta: body.metadata,
+      // meta: body.metadata,
     });
 
     return NextResponse.json(
