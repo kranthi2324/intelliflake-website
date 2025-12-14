@@ -65,6 +65,7 @@ function topOfferFrom(source, data) {
 }
 
 // Vercel serverless handler
+/*
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -113,3 +114,20 @@ module.exports = async (req, res) => {
     res.status(500).json({ answer: 'Error fetching prices.', prices: [] });
   }
 };
+*/
+// api/best-prices.js
+
+module.exports = async (req, res) => {
+  console.log('best-prices hit', req.method, req.url);
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  res.status(200).json({
+    answer: 'Test OK from Vercel',
+    prices: [],
+  });
+};
+
