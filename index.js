@@ -9,6 +9,10 @@ app.use(express.json());
 const SB_KEY = process.env.SCRAPINGBEE_API_KEY;
 const PORT = process.env.PORT || 3001;
 
+if (!SB_KEY) {
+  console.warn('Warning: SCRAPINGBEE_API_KEY is not set. Price calls will fail.');
+}
+
 // ---- Helpers to call ScrapingBee ----
 
 // Walmart search helper
@@ -46,15 +50,13 @@ async function searchAmazon(itemName) {
 }
 
 // ---- Extract a single top offer from raw JSON ----
-// IMPORTANT: You must adjust this based on the real structure ScrapingBee returns.
+// Adjust keys once you’ve inspected a real ScrapingBee response.
 function topOfferFrom(source, data) {
-  // Example assumption: data.items is an array of products
-  const items = (data && data.items) || [];
-  if (!items.length) return null;
+  const products = (data && data.products) || [];  // adjust this
+  if (!products.length) return null;
 
-  const first = items[0];
+  const first = products[0];
 
-  // Adjust these keys after inspecting one real response
   const title =
     first.title ||
     first.name ||
@@ -62,9 +64,8 @@ function topOfferFrom(source, data) {
     'Unknown item';
 
   const price =
+    first.price_value ||  // or whatever you see in JSON
     first.price ||
-    first.current_price ||
-    first.price_value ||
     null;
 
   const currency =
@@ -72,40 +73,41 @@ function topOfferFrom(source, data) {
     first.currency_code ||
     'USD';
 
-  return {
-    source,
-    title,
-    price,
-    currency
-  };
+  return { source, title, price, currency };
 }
+
 
 // ---- /best-prices endpoint for the iOS app ----
 
 app.post('/best-prices', async (req, res) => {
   try {
-    const { items = [] } = req.body;   // e.g. ["Coffee","Sugar"]
+    const { items = [] } = req.body; // e.g. ["Coffee","Sugar"]
     const results = [];
 
-    for (const name of items) {
-      // Fetch in parallel
-      const [walmartData, amazonData] = await Promise.all([
-        searchWalmart(name),
-        searchAmazon(name)
-      ]);
+      for (const name of items) {
+        try {
+          const [walmartData, amazonData] = await Promise.all([
+            searchWalmart(name),
+            searchAmazon(name)
+          ]);
 
-      // Uncomment once to inspect real structure, then comment again
-      // console.dir(walmartData, { depth: 1 });
-      // console.dir(amazonData, { depth: 1 });
+          // TEMP: inspect real structure from ScrapingBee
+          console.log('=== DEBUG for', name, '===');
+          console.dir(walmartData, { depth: 2 });
+          console.dir(amazonData, { depth: 2 });
 
-      const bestWalmart = topOfferFrom('Walmart', walmartData);
-      const bestAmazon  = topOfferFrom('Amazon',  amazonData);
+          const bestWalmart = topOfferFrom('Walmart', walmartData);
+          const bestAmazon  = topOfferFrom('Amazon',  amazonData);
 
-      results.push({
-        item: name,
-        offers: [bestWalmart, bestAmazon].filter(Boolean)
-      });
-    }
+          results.push({
+            item: name,
+            offers: [bestWalmart, bestAmazon].filter(Boolean)
+          });
+        } catch (itemErr) {
+          console.error('Error fetching prices for item:', name, itemErr);
+          results.push({ item: name, offers: [] });
+        }
+      }
 
     const lines = results.map(r => {
       const offers = r.offers || [];
@@ -123,7 +125,7 @@ app.post('/best-prices', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ answer: 'Error fetching prices.' });
+    res.status(500).json({ answer: 'Error fetching prices.', prices: [] });
   }
 });
 
