@@ -77,7 +77,19 @@ export default async function handler(req, res) {
           searchWalmart(name),
           searchAmazon(name),
         ]);
+          // ---- Point 3: log raw ScrapingBee payloads ----
+          console.log('BEST-PRICES ITEM:', name);
 
+          console.log(
+            'WALMART RAW:',
+            JSON.stringify(walmartData, null, 2)
+          );
+
+          console.log(
+            'AMAZON RAW:',
+            JSON.stringify(amazonData, null, 2)
+          );
+          // ----------------------------------------------
         const bestWalmart = topOfferFrom('Walmart', walmartData);
         const bestAmazon = topOfferFrom('Amazon', amazonData);
 
