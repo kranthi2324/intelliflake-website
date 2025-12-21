@@ -7,10 +7,11 @@ async function searchWalmart(itemName) {
     uri: 'https://app.scrapingbee.com/api/v1/walmart/search',
     qs: {
       api_key: SB_KEY,
-      light_request: 'true',
       query: itemName,
-      device: 'desktop',
+      light_request: 'true',
       sort_by: 'best_match',
+      device: 'desktop',
+      delivery_zip: '92591',   // <-- your ZIP here (Temecula example)
     },
     json: true,
   };
@@ -35,8 +36,14 @@ async function searchAmazon(itemName) {
 }
 
 function topOfferFrom(source, data) {
-  const items = (data && data.items) || [];
+  const items =
+    data.products ||   // Walmart search
+    data.items ||      // fallback if some endpoint uses items
+    data.results ||    // generic fallback
+    [];
+
   if (!items.length) return null;
+
   const first = items[0];
 
   const title =
@@ -49,6 +56,7 @@ function topOfferFrom(source, data) {
     first.price ||
     first.current_price ||
     first.price_value ||
+    first.offer_price ||
     null;
 
   const currency =
