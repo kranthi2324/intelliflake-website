@@ -115,19 +115,29 @@ function getMockData(itemName, source) {
     'paper towels': { walmart: 18.99, amazon: 19.99 },
     'milk': { walmart: 3.99, amazon: 4.49 },
     'coffee': { walmart: 12.99, amazon: 11.99 },
+    'eggs': { walmart: 5.99, amazon: 6.49 },
+    'bread': { walmart: 2.99, amazon: 3.49 },
+    'butter': { walmart: 4.99, amazon: 5.49 },
+    'cheese': { walmart: 7.99, amazon: 8.49 },
   };
   
   const key = itemName.toLowerCase();
   const price = mockPrices[key]?.[source.toLowerCase()] || 9.99;
   
+  // Capitalize first letter of item name
+  const formattedItemName = itemName.charAt(0).toUpperCase() + itemName.slice(1);
+  
+  // Proper source capitalization
+  const formattedSource = source === 'walmart' || source === 'Walmart' ? 'Walmart' : 'Amazon';
+  
   return {
     organic_results: [{
-      title: `${itemName.charAt(0).toUpperCase() + itemName.slice(1)} - ${source} Brand`,
+      title: `${formattedItemName} - ${formattedSource} Brand`,
       price: { value: price, currency: 'USD' },
-      url: source === 'walmart' 
+      url: source.toLowerCase() === 'walmart'
         ? `https://www.walmart.com/ip/${itemName.replace(/\s+/g, '-')}/12345`
         : `https://www.amazon.com/dp/${Math.random().toString(36).substring(7).toUpperCase()}`,
-      asin: source === 'amazon' ? Math.random().toString(36).substring(7).toUpperCase() : undefined,
+      asin: source.toLowerCase() === 'amazon' ? Math.random().toString(36).substring(7).toUpperCase() : undefined,
     }]
   };
 }
@@ -145,17 +155,20 @@ function topOfferFrom(source, data) {
   // Try multiple possible array fields
   const items =
     data.organic_results ||
+    data.products ||  // From structured extraction
     data.items ||
-    data.products ||
     data.results ||
     [];
 
   console.log(`📦 ${source} found ${items.length} items`);
 
-  if (!items.length) return null;
+  if (!items.length) {
+    console.log(`⚠️ ${source} response structure:`, Object.keys(data));
+    return null;
+  }
 
   const first = items[0];
-  console.log(`🔍 First ${source} item:`, JSON.stringify(first).substring(0, 150));
+  console.log(`🔍 First ${source} item:`, JSON.stringify(first).substring(0, 200));
 
   // Extract title
   const title =
@@ -165,13 +178,17 @@ function topOfferFrom(source, data) {
     first.productName ||
     'Unknown item';
 
-  // Extract price
+  // Extract price - handle various formats
   let price = null;
   let currency = 'USD';
 
   if (typeof first.price === 'object' && first.price !== null) {
     price = first.price.value || first.price.raw || first.price.amount;
     currency = first.price.currency || 'USD';
+  } else if (typeof first.price === 'string') {
+    // Parse string price like "$12.99"
+    const priceMatch = first.price.match(/[\d.]+/);
+    price = priceMatch ? parseFloat(priceMatch[0]) : null;
   } else {
     price =
       first.price ||
@@ -183,8 +200,8 @@ function topOfferFrom(source, data) {
     currency = first.currency || first.currency_code || 'USD';
   }
 
-  // Extract URL
-  const url = 
+  // Extract URL - handle relative URLs
+  let url = 
     first.url ||
     first.product_url ||
     first.productUrl ||
@@ -196,6 +213,15 @@ function topOfferFrom(source, data) {
     ((first.usItemId || first.product_id || first.itemId) && source === 'Walmart' 
       ? `https://www.walmart.com/ip/${first.usItemId || first.product_id || first.itemId}` 
       : null);
+
+  // Convert relative URLs to absolute
+  if (url && !url.startsWith('http')) {
+    if (source === 'Walmart') {
+      url = `https://www.walmart.com${url}`;
+    } else if (source === 'Amazon') {
+      url = `https://www.amazon.com${url}`;
+    }
+  }
 
   const result = { source, title, price, currency, url };
   console.log(`✅ ${source} offer:`, result);
@@ -220,8 +246,9 @@ export default async function handler(req, res) {
     console.log(`🔍 Processing ${items.length} items for ZIP: ${zipCode}`);
     console.log(`📝 Items:`, items);
     console.log(`🔑 API Key configured:`, !!SB_KEY);
+    console.log(`🎭 Using mock data:`, useMock);
     
-    if (!SB_KEY) {
+    if (!SB_KEY && !useMock) {
       console.error('❌ SCRAPINGBEE_API_KEY not configured!');
       return res.status(500).json({ 
         answer: 'API key not configured. Please set SCRAPINGBEE_API_KEY environment variable.',
@@ -240,14 +267,19 @@ export default async function handler(req, res) {
         if (useMock) {
           // Use mock data for testing
           console.log('🎭 Using mock data');
-          walmartData = getMockData(name, 'walmart');
-          amazonData = getMockData(name, 'amazon');
+          walmartData = getMockData(name, 'Walmart');
+          amazonData = getMockData(name, 'Amazon');
         } else {
-          // Real API calls
+          // Real API calls - Use structured extraction
+          console.log('🔄 Using real API with structured extraction');
           [walmartData, amazonData] = await Promise.all([
-            searchWalmart(name, zipCode).catch(e => {
-              console.error(`Walmart error for ${name}:`, e);
-              return { error: e.message };
+            searchWalmartStructured(name, zipCode).catch(e => {
+              console.error(`Walmart structured search error for ${name}:`, e);
+              // Fallback to basic search if structured fails
+              return searchWalmart(name, zipCode).catch(err => {
+                console.error(`Walmart basic search also failed:`, err);
+                return { error: err.message };
+              });
             }),
             searchAmazon(name).catch(e => {
               console.error(`Amazon error for ${name}:`, e);
