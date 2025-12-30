@@ -2,7 +2,7 @@ import rp from 'request-promise';
 
 const SB_KEY = process.env.SCRAPINGBEE_API_KEY;
 
-async function searchWalmart(itemName) {
+async function searchWalmart(itemName, zipCode = '92591') {
   const options = {
     uri: 'https://app.scrapingbee.com/api/v1/walmart/search',
     qs: {
@@ -11,7 +11,7 @@ async function searchWalmart(itemName) {
       light_request: 'true',
       sort_by: 'best_match',
       device: 'desktop',
-      delivery_zip: '92591',   // <-- your ZIP here (Temecula example)
+      delivery_zip: zipCode,   // <-- User's ZIP code from request
     },
     json: true,
   };
@@ -76,13 +76,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { items = [] } = req.body || {};
+    const { items = [], zipCode = '92591' } = req.body || {};  // <-- Added zipCode
     const results = [];
 
     for (const name of items) {
       try {
         const [walmartData, amazonData] = await Promise.all([
-          searchWalmart(name),
+          searchWalmart(name, zipCode),  // <-- Pass zipCode here
           searchAmazon(name),
         ]);
           // ---- Point 3: log raw ScrapingBee payloads ----
