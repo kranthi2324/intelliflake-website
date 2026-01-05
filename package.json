@@ -9,13 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "next": "16.0.8",
+    "next": "^16.1.1",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "request": "^2.88.2",
-    "request-promise": "^4.2.6"
+    "request-promise": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
