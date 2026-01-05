@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     // 2. Configure Model
     // Use 'gemini-1.5-flash' for speed/cost, or 'gemini-1.5-pro' for complex reasoning
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash-lite",
       // (B) Force JSON if requesting a calendar/schedule
       generationConfig: mode === 'calendar' ? { responseMimeType: "application/json" } : {}
     });
